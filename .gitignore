@@ -16,3 +16,8 @@ data/*.db
 
 # OS files
 .DS_Store
+
+#Vim temporary files
+*.swp
+*.swo
+
