@@ -1,0 +1,18 @@
+# Compiled files
+chronodb
+*.o
+
+# Build directories
+build/
+
+# Generated database files
+data/*.db
+
+# Temporary files
+*.tmp
+
+# Editor files
+.vscode/
+
+# OS files
+.DS_Store
