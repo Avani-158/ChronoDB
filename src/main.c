@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include "parser.h"
 
 int main(void)
 {
@@ -20,26 +21,17 @@ int main(void)
 
         input[strcspn(input, "\n")] = '\0';
 
-        if (strcmp(input, "EXIT") == 0)
-        {
-            printf("Goodbye.\n");
-            break;
-        }
-
-        if (strcmp(input, "HELP") == 0)
-        {
-            printf("Available commands:\n");
-            printf("  HELP\n");
-            printf("  EXIT\n");
-            continue;
-        }
-
         if (strlen(input) == 0)
         {
             continue;
         }
 
-        printf("ERR unknown command. Type HELP.\n");
+        parser_handle_command(input);
+
+        if (strcmp(input, "EXIT") == 0)
+        {
+            break;
+        }
     }
 
     return 0;
