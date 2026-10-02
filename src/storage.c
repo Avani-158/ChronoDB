@@ -41,3 +41,37 @@ const char *storage_get(const char *key)
 
     return NULL;
 }
+
+
+int storage_update(const char *key, const char *value)
+{
+    for (int i = 0; i < entry_count; i++)
+    {
+        if (strcmp(entries[i].key, key) == 0)
+        {
+            strcpy(entries[i].value, value);
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+int storage_delete(const char *key)
+{
+    for (int i = 0; i < entry_count; i++)
+    {
+        if (strcmp(entries[i].key, key) == 0)
+        {
+            for (int j = i; j < entry_count - 1; j++)
+            {
+                entries[j] = entries[j + 1];
+            }
+
+            entry_count--;
+            return 1;
+        }
+    }
+
+    return 0;
+}

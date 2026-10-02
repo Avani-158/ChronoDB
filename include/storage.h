@@ -12,6 +12,11 @@ typedef struct
 } Entry;
 
 int storage_set(const char *key, const char *value);
+
 const char *storage_get(const char *key);
+
+int storage_update(const char *key, const char *value);
+
+int storage_delete(const char *key);
 
 #endif

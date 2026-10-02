@@ -20,6 +20,8 @@ void parser_handle_command(const char *input)
         printf("  HELP\n");
         printf("  SET <key> <value>\n");
         printf("  GET <key>\n");
+	printf("  UPDATE <key> <value>\n");
+	printf("  DELETE <key>\n");
         printf("  EXIT\n");
     }
     else if (strcmp(command, "SET") == 0)
@@ -38,6 +40,40 @@ void parser_handle_command(const char *input)
         {
             printf("ERR storage is full\n");
         }
+    }
+    else if (strcmp(command,"UPDATE") == 0)
+    {
+	    if (sscanf(input, "%*s %49s %199s", key, value) != 2)
+	    {
+		    printf("ERR usage: UPDATE <key> <value>\n");
+                    return;
+	    }
+	    
+	    if (storage_update(key, value))
+	    {
+		    printf("OK\n");
+	    }
+	    else
+	    {
+		    printf("ERR key not found\n");
+	    }
+    }
+    else if (strcmp(command, "DELETE") == 0)
+    {
+	    if (sscanf(input, "%*s %49s", key) != 1)
+	    {
+		     printf("ERR usage: DELETE <key>\n");
+		     return;
+	    }
+
+	    if (storage_delete(key))
+	    {
+		    printf("OK\n");
+	    }
+	    else
+	    {
+		    printf("ERR key not found\n");
+	    }
     }
     else if (strcmp(command, "GET") == 0)
     {
