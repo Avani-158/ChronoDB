@@ -5,102 +5,150 @@
 
 void parser_handle_command(const char *input)
 {
-    char command[20];
-    char key[MAX_KEY_LENGTH];
-    char value[MAX_VALUE_LENGTH];
+    char line[100];
+    char *command;
+    char *key;
+    char *value;
+    char *extra;
 
-    if (sscanf(input, "%19s", command) != 1)
+    if (strlen(input) >= sizeof(line))
+    {
+        printf("ERR command too long\n");
+        return;
+    }
+
+    strcpy(line, input);
+
+    command = strtok(line, " \t");
+
+    if (command == NULL)
     {
         return;
     }
 
     if (strcmp(command, "HELP") == 0)
     {
+        if (strtok(NULL, " \t") != NULL)
+        {
+            printf("ERR usage: HELP\n");
+            return;
+        }
+
         printf("Available commands:\n");
         printf("  HELP\n");
         printf("  SET <key> <value>\n");
         printf("  GET <key>\n");
-	printf("  UPDATE <key> <value>\n");
-	printf("  DELETE <key>\n");
-	printf("  LIST\n");
+        printf("  UPDATE <key> <value>\n");
+        printf("  DELETE <key>\n");
+        printf("  LIST\n");
         printf("  EXIT\n");
     }
-    else if (strcmp(command, "SET") == 0)
+    else if (strcmp(command, "SET") == 0 ||
+             strcmp(command, "UPDATE") == 0)
     {
-        if (sscanf(input, "%*s %49s %199s", key, value) != 2)
+        key = strtok(NULL, " \t");
+        value = strtok(NULL, " \t");
+        extra = strtok(NULL, " \t");
+
+        if (key == NULL || value == NULL || extra != NULL)
         {
-            printf("ERR usage: SET <key> <value>\n");
+            printf("ERR usage: %s <key> <value>\n", command);
             return;
         }
 
-        if (storage_set(key, value))
+        if (strlen(key) >= MAX_KEY_LENGTH ||
+            strlen(value) >= MAX_VALUE_LENGTH)
         {
-            printf("OK\n");
-        }
-        else
-        {
-            printf("ERR storage is full\n");
-        }
-    }
-    else if (strcmp(command,"UPDATE") == 0)
-    {
-	    if (sscanf(input, "%*s %49s %199s", key, value) != 2)
-	    {
-		    printf("ERR usage: UPDATE <key> <value>\n");
-                    return;
-	    }
-	    
-	    if (storage_update(key, value))
-	    {
-		    printf("OK\n");
-	    }
-	    else
-	    {
-		    printf("ERR key not found\n");
-	    }
-    }
-    else if (strcmp(command, "DELETE") == 0)
-    {
-	    if (sscanf(input, "%*s %49s", key) != 1)
-	    {
-		     printf("ERR usage: DELETE <key>\n");
-		     return;
-	    }
-
-	    if (storage_delete(key))
-	    {
-		    printf("OK\n");
-	    }
-	    else
-	    {
-		    printf("ERR key not found\n");
-	    }
-    }
-    else if (strcmp(command, "GET") == 0)
-    {
-        if (sscanf(input, "%*s %49s", key) != 1)
-        {
-            printf("ERR usage: GET <key>\n");
+            printf("ERR key or value too long\n");
             return;
         }
 
-        const char *result = storage_get(key);
+        int success;
 
-        if (result != NULL)
+        if (strcmp(command, "SET") == 0)
         {
-            printf("%s\n", result);
+            success = storage_set(key, value);
+
+            if (!success)
+            {
+                printf("ERR storage is full\n");
+                return;
+            }
         }
         else
         {
-            printf("ERR key not found\n");
+            success = storage_update(key, value);
+
+            if (!success)
+            {
+                printf("ERR key not found\n");
+                return;
+            }
+        }
+
+        printf("OK\n");
+    }
+    else if (strcmp(command, "GET") == 0 ||
+             strcmp(command, "DELETE") == 0)
+    {
+        key = strtok(NULL, " \t");
+        extra = strtok(NULL, " \t");
+
+        if (key == NULL || extra != NULL)
+        {
+            printf("ERR usage: %s <key>\n", command);
+            return;
+        }
+
+        if (strlen(key) >= MAX_KEY_LENGTH)
+        {
+            printf("ERR key too long\n");
+            return;
+        }
+
+        if (strcmp(command, "GET") == 0)
+        {
+            const char *result = storage_get(key);
+
+            if (result != NULL)
+            {
+                printf("%s\n", result);
+            }
+            else
+            {
+                printf("ERR key not found\n");
+            }
+        }
+        else
+        {
+            if (storage_delete(key))
+            {
+                printf("OK\n");
+            }
+            else
+            {
+                printf("ERR key not found\n");
+            }
         }
     }
     else if (strcmp(command, "LIST") == 0)
     {
-	    storage_list();
+        if (strtok(NULL, " \t") != NULL)
+        {
+            printf("ERR usage: LIST\n");
+            return;
+        }
+
+        storage_list();
     }
     else if (strcmp(command, "EXIT") == 0)
     {
+        if (strtok(NULL, " \t") != NULL)
+        {
+            printf("ERR usage: EXIT\n");
+            return;
+        }
+
         printf("Goodbye.\n");
     }
     else

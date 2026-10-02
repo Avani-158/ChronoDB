@@ -19,9 +19,25 @@ int main(void)
             break;
         }
 
-        input[strcspn(input, "\n")] = '\0';
+        size_t len = strlen(input);
 
-        if (strlen(input) == 0)
+        if (len > 0 && input[len - 1] == '\n')
+        {
+            input[len - 1] = '\0';
+        }
+        else if (!feof(stdin))
+        {
+            int ch;
+
+            while ((ch = getchar()) != '\n' && ch != EOF)
+            {
+            }
+
+            printf("ERR command too long. Maximum length is 98 characters.\n");
+            continue;
+        }
+
+        if (input[0] == '\0')
         {
             continue;
         }

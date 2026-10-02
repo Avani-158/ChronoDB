@@ -8,6 +8,11 @@ static int entry_count = 0;
 
 int storage_set(const char *key, const char *value)
 {
+    if (key == NULL || value == NULL || key[0] == '\0' || strlen(key) >= MAX_KEY_LENGTH || strlen(value) >= MAX_VALUE_LENGTH)
+    {
+        return 0;
+    }
+
     for (int i = 0; i < entry_count; i++)
     {
         if (strcmp(entries[i].key, key) == 0)
@@ -45,6 +50,11 @@ const char *storage_get(const char *key)
 
 int storage_update(const char *key, const char *value)
 {
+    if (key == NULL || value == NULL || key[0] == '\0' || strlen(key) >= MAX_KEY_LENGTH || strlen(value) >= MAX_VALUE_LENGTH)
+    {
+        return 0;
+    }
+
     for (int i = 0; i < entry_count; i++)
     {
         if (strcmp(entries[i].key, key) == 0)
