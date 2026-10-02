@@ -75,3 +75,20 @@ int storage_delete(const char *key)
 
     return 0;
 }
+
+void storage_list(void)
+{
+    if (entry_count == 0)
+    {
+        printf("Database is empty.\n");
+        return;
+    }
+
+    printf("Key\tValue\n");
+    printf("-------------------------\n");
+
+    for (int i = 0; i < entry_count; i++)
+    {
+        printf("%s\t%s\n", entries[i].key, entries[i].value);
+    }
+}

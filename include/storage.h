@@ -19,4 +19,6 @@ int storage_update(const char *key, const char *value);
 
 int storage_delete(const char *key);
 
+void storage_list(void);
+
 #endif

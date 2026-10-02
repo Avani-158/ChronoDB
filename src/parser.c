@@ -22,6 +22,7 @@ void parser_handle_command(const char *input)
         printf("  GET <key>\n");
 	printf("  UPDATE <key> <value>\n");
 	printf("  DELETE <key>\n");
+	printf("  LIST\n");
         printf("  EXIT\n");
     }
     else if (strcmp(command, "SET") == 0)
@@ -93,6 +94,10 @@ void parser_handle_command(const char *input)
         {
             printf("ERR key not found\n");
         }
+    }
+    else if (strcmp(command, "LIST") == 0)
+    {
+	    storage_list();
     }
     else if (strcmp(command, "EXIT") == 0)
     {
