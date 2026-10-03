@@ -6,6 +6,38 @@
 static Entry entries[MAX_ENTRIES];
 static int entry_count = 0;
 
+static HistoryEntry history[MAX_HISTORY];
+static int history_count = 0;
+
+static int record_history(const char *key, const char *value)
+{
+    if (history_count >= MAX_HISTORY)
+    {
+        return 0;
+    }
+
+    int version = 1;
+
+    for (int i = 0; i < history_count; i++)
+    {
+        if (strcmp(history[i].key, key) == 0)
+        {
+            if (history[i].version >= version)
+            {
+                version = history[i].version + 1;
+            }
+        }
+    }
+
+    strcpy(history[history_count].key, key);
+    strcpy(history[history_count].value, value);
+    history[history_count].version = version;
+
+    history_count++;
+
+    return 1;
+}
+
 int storage_set(const char *key, const char *value)
 {
     if (key == NULL || value == NULL || key[0] == '\0' || strlen(key) >= MAX_KEY_LENGTH || strlen(value) >= MAX_VALUE_LENGTH)
@@ -17,6 +49,11 @@ int storage_set(const char *key, const char *value)
     {
         if (strcmp(entries[i].key, key) == 0)
         {
+		if (!record_history(key,value))
+		{
+			return 0;
+		}
+
             strcpy(entries[i].value, value);
             return 1;
         }
@@ -25,6 +62,11 @@ int storage_set(const char *key, const char *value)
     if (entry_count >= MAX_ENTRIES)
     {
         return 0;
+    }
+
+    if (!record_history(key,value))
+    {
+	    return 0;
     }
 
     strcpy(entries[entry_count].key, key);
@@ -59,6 +101,11 @@ int storage_update(const char *key, const char *value)
     {
         if (strcmp(entries[i].key, key) == 0)
         {
+		if (!record_history(key,value))
+		{
+			return 0;
+		}
+
             strcpy(entries[i].value, value);
             return 1;
         }
@@ -217,4 +264,33 @@ int storage_load(const char *filename)
     entry_count = loaded_count;
 
     return 1;
+}
+
+void storage_history(const char *key)
+{
+    if (key == NULL || key[0] == '\0')
+    {
+        printf("Invalid key.\n");
+        return;
+    }
+
+    int found = 0;
+
+    printf("History for key: %s\n", key);
+    printf("Version\tValue\n");
+    printf("-------------------------\n");
+
+    for (int i = 0; i < history_count; i++)
+    {
+        if (strcmp(history[i].key, key) == 0)
+        {
+            printf("%d\t%s\n", history[i].version, history[i].value);
+            found = 1;
+        }
+    }
+
+    if (!found)
+    {
+        printf("No history found for this key.\n");
+    }
 }

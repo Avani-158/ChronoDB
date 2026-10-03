@@ -43,6 +43,7 @@ void parser_handle_command(const char *input)
         printf("  LIST\n");
         printf("  SAVE\n");
         printf("  LOAD\n");
+    printf("  HISTORY <key>\n");
         printf("  EXIT\n");
     }
     else if (strcmp(command, "SET") == 0 ||
@@ -143,6 +144,26 @@ void parser_handle_command(const char *input)
 
         storage_list();
     }
+
+   else if (strcmp(command, "HISTORY") == 0)
+   {
+        key = strtok(NULL, " \t");
+        extra = strtok(NULL, " \t");
+
+     if (key == NULL || extra != NULL)
+         {
+         printf("ERR usage: HISTORY <key>\n");
+             return;
+     }
+
+     if (strlen(key) >= MAX_KEY_LENGTH)
+        {
+             printf("ERR key too long\n");
+            return;
+     }
+
+     storage_history(key);
+  }
     else if (strcmp(command, "SAVE") == 0)
     {
          if (strtok(NULL, " \t") != NULL)
