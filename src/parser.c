@@ -41,6 +41,8 @@ void parser_handle_command(const char *input)
         printf("  UPDATE <key> <value>\n");
         printf("  DELETE <key>\n");
         printf("  LIST\n");
+        printf("  SAVE\n");
+        printf("  LOAD\n");
         printf("  EXIT\n");
     }
     else if (strcmp(command, "SET") == 0 ||
@@ -140,6 +142,40 @@ void parser_handle_command(const char *input)
         }
 
         storage_list();
+    }
+    else if (strcmp(command, "SAVE") == 0)
+    {
+         if (strtok(NULL, " \t") != NULL)
+         {
+                 printf("ERR usage: SAVE\n");
+                 return;
+         }
+
+         if (storage_save("data/chronodb.db"))
+         {
+                 printf("OK: database saved\n");
+         }
+         else
+         {
+                 printf("ERR could not save database\n");
+         }
+    }
+    else if (strcmp(command, "LOAD") == 0)
+    {
+        if (strtok(NULL, " \t") != NULL)
+         {
+                printf("ERR usage: LOAD\n");
+                return;
+         }
+
+         if (storage_load("data/chronodb.db"))
+         {
+                printf("OK: database loaded\n");
+         }
+         else
+        {
+                printf("ERR could not load database\n");
+         }
     }
     else if (strcmp(command, "EXIT") == 0)
     {

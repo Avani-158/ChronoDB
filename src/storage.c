@@ -102,3 +102,119 @@ void storage_list(void)
         printf("%s\t%s\n", entries[i].key, entries[i].value);
     }
 }
+
+int storage_save(const char *filename)
+{
+    if (filename == NULL)
+    {
+        return 0;
+    }
+
+    FILE *file = fopen(filename, "w");
+
+    if (file == NULL)
+    {
+        return 0;
+    }
+
+    for (int i = 0; i < entry_count; i++)
+    {
+        if (fprintf(file, "%s %s\n",
+                    entries[i].key,
+                    entries[i].value) < 0)
+        {
+            fclose(file);
+            return 0;
+        }
+    }
+
+    if (fclose(file) != 0)
+    {
+        return 0;
+    }
+
+    return 1;
+}
+
+int storage_load(const char *filename)
+{
+    if (filename == NULL)
+    {
+        return 0;
+    }
+
+    FILE *file = fopen(filename, "r");
+
+    if (file == NULL)
+    {
+        return 0;
+    }
+
+    Entry loaded[MAX_ENTRIES];
+    int loaded_count = 0;
+    char line[256];
+    int success = 1;
+
+    while (fgets(line, sizeof(line), file) != NULL)
+    {
+        size_t len = strlen(line);
+
+        if (len > 0 && line[len - 1] != '\n' && !feof(file))
+        {
+            success = 0;
+            break;
+        }
+
+        char key[MAX_KEY_LENGTH];
+        char value[MAX_VALUE_LENGTH];
+        char extra;
+
+        if (sscanf(line, "%49s %199s %c",
+                   key, value, &extra) != 2)
+        {
+            success = 0;
+            break;
+        }
+
+        if (loaded_count >= MAX_ENTRIES)
+        {
+            success = 0;
+            break;
+        }
+
+        for (int i = 0; i < loaded_count; i++)
+        {
+            if (strcmp(loaded[i].key, key) == 0)
+            {
+                success = 0;
+                break;
+            }
+        }
+
+        if (!success)
+        {
+            break;
+        }
+
+        strcpy(loaded[loaded_count].key, key);
+        strcpy(loaded[loaded_count].value, value);
+        loaded_count++;
+    }
+
+    if (ferror(file))
+    {
+        success = 0;
+    }
+
+    fclose(file);
+
+    if (!success)
+    {
+        return 0;
+    }
+
+    memcpy(entries, loaded, loaded_count * sizeof(Entry));
+    entry_count = loaded_count;
+
+    return 1;
+}
