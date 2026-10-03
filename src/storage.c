@@ -294,3 +294,56 @@ void storage_history(const char *key)
         printf("No history found for this key.\n");
     }
 }
+
+
+int storage_rollback(const char *key, int version)
+{
+    if (key == NULL || key[0] == '\0' || version <= 0)
+    {
+        return 0;
+    }
+
+    int current_index = -1;
+    int history_index = -1;
+
+    for (int i = 0; i < entry_count; i++)
+    {
+        if (strcmp(entries[i].key, key) == 0)
+        {
+            current_index = i;
+            break;
+        }
+    }
+
+    if (current_index == -1)
+    {
+        return 0;
+    }
+
+    for (int i = 0; i < history_count; i++)
+    {
+        if (strcmp(history[i].key, key) == 0 &&
+            history[i].version == version)
+        {
+            history_index = i;
+            break;
+        }
+    }
+
+    if (history_index == -1)
+    {
+        return 0;
+    }
+
+    char restored_value[MAX_VALUE_LENGTH];
+    strcpy(restored_value, history[history_index].value);
+
+    if (!record_history(key, restored_value))
+    {
+        return 0;
+    }
+
+    strcpy(entries[current_index].value, restored_value);
+
+    return 1;
+}

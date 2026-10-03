@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "parser.h"
 #include "storage.h"
 
@@ -44,6 +45,7 @@ void parser_handle_command(const char *input)
         printf("  SAVE\n");
         printf("  LOAD\n");
     printf("  HISTORY <key>\n");
+    printf("  ROLLBACK <key> <version>\n");
         printf("  EXIT\n");
     }
     else if (strcmp(command, "SET") == 0 ||
@@ -164,6 +166,42 @@ void parser_handle_command(const char *input)
 
      storage_history(key);
   }
+   else if (strcmp(command, "ROLLBACK") == 0)
+   {
+       key = strtok(NULL, " \t");
+       char *version_text = strtok(NULL, " \t");
+       extra = strtok(NULL, " \t");
+
+       if (key == NULL || version_text == NULL || extra != NULL )
+       {
+             printf("ERR usage: ROLLBACK <key> <version>\n");
+             return;
+       }
+
+       if (strlen(key) >= MAX_KEY_LENGTH)
+       {
+             printf("ERR key too long\n");
+             return;
+           }
+
+       char *endptr;
+       long version = strtol(version_text, &endptr, 10);
+
+       if (*version_text == '\0' || *endptr != '\0' || version <= 0 || version > 2147483647)
+      {
+              printf("ERR invalid version\n");
+             return;
+      }
+
+     if (storage_rollback(key, (int)version))
+     {
+             printf("OK: rollback successful\n");
+      }
+      else
+       {
+              printf("ERR rollback failed: key or version not found, or history full\n");
+     }
+    }
     else if (strcmp(command, "SAVE") == 0)
     {
          if (strtok(NULL, " \t") != NULL)

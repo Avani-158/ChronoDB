@@ -36,4 +36,6 @@ int storage_load(const char *filename);
 
 void storage_history(const char *key);
 
+int storage_rollback(const char *key, int version);
+
 #endif
