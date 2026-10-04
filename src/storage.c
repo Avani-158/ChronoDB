@@ -175,9 +175,7 @@ int storage_save(const char *filename)
 
     for (int i = 0; success && i < entry_count; i++)
     {
-        if (fprintf(file, "%s %s\n",
-                    entries[i].key,
-                    entries[i].value) < 0)
+        if (fprintf(file, "%s %s\n", entries[i].key, entries[i].value) < 0)
         {
             success = 0;
         }
@@ -190,10 +188,7 @@ int storage_save(const char *filename)
 
     for (int i = 0; success && i < history_count; i++)
     {
-        if (fprintf(file, "%s %s %d\n",
-                    history[i].key,
-                    history[i].value,
-                    history[i].version) < 0)
+        if (fprintf(file, "%s %s %d\n", history[i].key, history[i].value, history[i].version) < 0)
         {
             success = 0;
         }
@@ -233,11 +228,9 @@ int storage_load(const char *filename)
     char line[256];
     char header[32];
     int version;
+    char extra;
 
-    if (fgets(line, sizeof(line), file) == NULL ||
-        sscanf(line, "%31s %d", header, &version) != 2 ||
-        strcmp(header, "CHRONODB") != 0 ||
-        version != 2)
+    if (fgets(line, sizeof(line), file) == NULL || sscanf(line, "%31s %d %c", header, &version, &extra) != 2 || strcmp(header, "CHRONODB") != 0 || version != 2)
     {
         success = 0;
     }
@@ -245,11 +238,10 @@ int storage_load(const char *filename)
     int expected_entries = -1;
     int expected_history = -1;
 
-    if (success)
+    if (success )
     {
-        if (fgets(line, sizeof(line), file) == NULL ||
-            sscanf(line, "ENTRIES %d", &expected_entries) != 1 ||
-            expected_entries < 0 || expected_entries > MAX_ENTRIES)
+	    char extra;
+        if (fgets(line, sizeof(line), file) == NULL || sscanf(line, "ENTRIES %d %c", &expected_entries, &extra) != 1 || expected_entries < 0 || expected_entries > MAX_ENTRIES)
         {
             success = 0;
         }
@@ -261,8 +253,7 @@ int storage_load(const char *filename)
         char value[MAX_VALUE_LENGTH];
         char extra;
 
-        if (fgets(line, sizeof(line), file) == NULL ||
-            sscanf(line, "%49s %199s %c", key, value, &extra) != 2)
+        if (fgets(line, sizeof(line), file) == NULL || sscanf(line, "%49s %199s %c", key, value, &extra) != 2)
         {
             success = 0;
             break;
@@ -289,9 +280,8 @@ int storage_load(const char *filename)
 
     if (success)
     {
-        if (fgets(line, sizeof(line), file) == NULL ||
-            sscanf(line, "HISTORY %d", &expected_history) != 1 ||
-            expected_history < 0 || expected_history > MAX_HISTORY)
+	    char extra;
+        if (fgets(line, sizeof(line), file) == NULL || sscanf(line, "HISTORY %d %c", &expected_history, &extra) != 1 || expected_history < 0 || expected_history > MAX_HISTORY)
         {
             success = 0;
         }
@@ -304,10 +294,7 @@ int storage_load(const char *filename)
         int history_version;
         char extra;
 
-        if (fgets(line, sizeof(line), file) == NULL ||
-            sscanf(line, "%49s %199s %d %c",
-                   key, value, &history_version, &extra) != 3 ||
-            history_version <= 0)
+        if (fgets(line, sizeof(line), file) == NULL || sscanf(line, "%49s %199s %d %c", key, value, &history_version, &extra) != 3 ||history_version <= 0)
         {
             success = 0;
             break;
@@ -315,8 +302,7 @@ int storage_load(const char *filename)
 
         for (int j = 0; j < loaded_history_count; j++)
         {
-            if (strcmp(loaded_history[j].key, key) == 0 &&
-                loaded_history[j].version == history_version)
+            if (strcmp(loaded_history[j].key, key) == 0 && loaded_history[j].version == history_version)
             {
                 success = 0;
                 break;
@@ -333,6 +319,28 @@ int storage_load(const char *filename)
         loaded_history[loaded_history_count].version = history_version;
         loaded_history_count++;
     }
+    
+    /* Validate current entries against their latest history */
+	for (int i = 0; success && i < loaded_count; i++)
+	{
+   	 	int latest_version = 0;
+   	 	const char *latest_value = NULL;
+
+    	for (int j = 0; j < loaded_history_count; j++)
+   	 {
+       		 if (strcmp(loaded[i].key, loaded_history[j].key) == 0 && loaded_history[j].version > latest_version)
+        	{
+            		latest_version = loaded_history[j].version;
+            		latest_value = loaded_history[j].value;
+       		 }
+   	 }
+
+    		if (latest_value == NULL || strcmp(loaded[i].value, latest_value) != 0)
+   		 {
+       		 success = 0;
+   		 }
+	}
+
 
     if (success && fgets(line, sizeof(line), file) != NULL)
     {
@@ -422,8 +430,7 @@ int storage_rollback(const char *key, int version)
 
     for (int i = 0; i < history_count; i++)
     {
-        if (strcmp(history[i].key, key) == 0 &&
-            history[i].version == version)
+        if (strcmp(history[i].key, key) == 0 && history[i].version == version)
         {
             history_index = i;
             break;
