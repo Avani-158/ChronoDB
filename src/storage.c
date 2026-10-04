@@ -150,6 +150,7 @@ void storage_list(void)
     }
 }
 
+
 int storage_save(const char *filename)
 {
     if (filename == NULL)
@@ -164,24 +165,49 @@ int storage_save(const char *filename)
         return 0;
     }
 
-    for (int i = 0; i < entry_count; i++)
+    int success = 1;
+
+    if (fprintf(file, "CHRONODB 2\n") < 0 ||
+        fprintf(file, "ENTRIES %d\n", entry_count) < 0)
+    {
+        success = 0;
+    }
+
+    for (int i = 0; success && i < entry_count; i++)
     {
         if (fprintf(file, "%s %s\n",
                     entries[i].key,
                     entries[i].value) < 0)
         {
-            fclose(file);
-            return 0;
+            success = 0;
+        }
+    }
+
+    if (success && fprintf(file, "HISTORY %d\n", history_count) < 0)
+    {
+        success = 0;
+    }
+
+    for (int i = 0; success && i < history_count; i++)
+    {
+        if (fprintf(file, "%s %s %d\n",
+                    history[i].key,
+                    history[i].value,
+                    history[i].version) < 0)
+        {
+            success = 0;
         }
     }
 
     if (fclose(file) != 0)
     {
-        return 0;
+        success = 0;
     }
 
-    return 1;
+    return success;
 }
+
+
 
 int storage_load(const char *filename)
 {
@@ -198,40 +224,53 @@ int storage_load(const char *filename)
     }
 
     Entry loaded[MAX_ENTRIES];
+    HistoryEntry loaded_history[MAX_HISTORY];
+
     int loaded_count = 0;
-    char line[256];
+    int loaded_history_count = 0;
     int success = 1;
 
-    while (fgets(line, sizeof(line), file) != NULL)
-    {
-        size_t len = strlen(line);
+    char line[256];
+    char header[32];
+    int version;
 
-        if (len > 0 && line[len - 1] != '\n' && !feof(file))
+    if (fgets(line, sizeof(line), file) == NULL ||
+        sscanf(line, "%31s %d", header, &version) != 2 ||
+        strcmp(header, "CHRONODB") != 0 ||
+        version != 2)
+    {
+        success = 0;
+    }
+
+    int expected_entries = -1;
+    int expected_history = -1;
+
+    if (success)
+    {
+        if (fgets(line, sizeof(line), file) == NULL ||
+            sscanf(line, "ENTRIES %d", &expected_entries) != 1 ||
+            expected_entries < 0 || expected_entries > MAX_ENTRIES)
         {
             success = 0;
-            break;
         }
+    }
 
+    for (int i = 0; success && i < expected_entries; i++)
+    {
         char key[MAX_KEY_LENGTH];
         char value[MAX_VALUE_LENGTH];
         char extra;
 
-        if (sscanf(line, "%49s %199s %c",
-                   key, value, &extra) != 2)
+        if (fgets(line, sizeof(line), file) == NULL ||
+            sscanf(line, "%49s %199s %c", key, value, &extra) != 2)
         {
             success = 0;
             break;
         }
 
-        if (loaded_count >= MAX_ENTRIES)
+        for (int j = 0; j < loaded_count; j++)
         {
-            success = 0;
-            break;
-        }
-
-        for (int i = 0; i < loaded_count; i++)
-        {
-            if (strcmp(loaded[i].key, key) == 0)
+            if (strcmp(loaded[j].key, key) == 0)
             {
                 success = 0;
                 break;
@@ -246,6 +285,58 @@ int storage_load(const char *filename)
         strcpy(loaded[loaded_count].key, key);
         strcpy(loaded[loaded_count].value, value);
         loaded_count++;
+    }
+
+    if (success)
+    {
+        if (fgets(line, sizeof(line), file) == NULL ||
+            sscanf(line, "HISTORY %d", &expected_history) != 1 ||
+            expected_history < 0 || expected_history > MAX_HISTORY)
+        {
+            success = 0;
+        }
+    }
+
+    for (int i = 0; success && i < expected_history; i++)
+    {
+        char key[MAX_KEY_LENGTH];
+        char value[MAX_VALUE_LENGTH];
+        int history_version;
+        char extra;
+
+        if (fgets(line, sizeof(line), file) == NULL ||
+            sscanf(line, "%49s %199s %d %c",
+                   key, value, &history_version, &extra) != 3 ||
+            history_version <= 0)
+        {
+            success = 0;
+            break;
+        }
+
+        for (int j = 0; j < loaded_history_count; j++)
+        {
+            if (strcmp(loaded_history[j].key, key) == 0 &&
+                loaded_history[j].version == history_version)
+            {
+                success = 0;
+                break;
+            }
+        }
+
+        if (!success)
+        {
+            break;
+        }
+
+        strcpy(loaded_history[loaded_history_count].key, key);
+        strcpy(loaded_history[loaded_history_count].value, value);
+        loaded_history[loaded_history_count].version = history_version;
+        loaded_history_count++;
+    }
+
+    if (success && fgets(line, sizeof(line), file) != NULL)
+    {
+        success = 0;
     }
 
     if (ferror(file))
@@ -263,8 +354,17 @@ int storage_load(const char *filename)
     memcpy(entries, loaded, loaded_count * sizeof(Entry));
     entry_count = loaded_count;
 
+    memcpy(history, loaded_history,
+           loaded_history_count * sizeof(HistoryEntry));
+    history_count = loaded_history_count;
+
     return 1;
 }
+
+
+
+
+
 
 void storage_history(const char *key)
 {
