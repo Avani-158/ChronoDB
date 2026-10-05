@@ -61,7 +61,8 @@ int main(void)
     fprintf(file, "CHRONODB 2 extra\n");
     fprintf(file, "ENTRIES 0\n");
     fprintf(file, "HISTORY 0\n");
-
+    
+    fclose(file);
 
     assert(storage_load("/tmp/chronodb_malformed.db") == 0);
     assert(strcmp(storage_get("safe"), "value") == 0);
@@ -86,14 +87,33 @@ int main(void)
 
     printf("PASS: Inconsistent history rejection\n");
 
+  
+
+
+    /* Test 10: Deleted key history survives loading */
+    assert(storage_set("deleted", "first") == 1);
+    assert(storage_update("deleted", "second") == 1);
+    assert(storage_delete("deleted") == 1);
+    assert(storage_get("deleted") == NULL);
+
+    assert(storage_save("/tmp/chronodb_deleted.db") == 1);
+
+    assert(storage_set("temporary", "value") == 1);
+
+    assert(storage_load("/tmp/chronodb_deleted.db") == 1);
+    assert(storage_get("deleted") == NULL);
+
+    printf("PASS: Deleted key history survives loading\n");
+
+    remove("/tmp/chronodb_deleted.db");
+
     remove("/tmp/chronodb_inconsistent.db");
-
     remove("/tmp/chronodb_malformed.db");
-
     remove("/tmp/chronodb_test.db");
     remove("/tmp/chronodb_invalid.db");
 
     printf("\nAll storage tests passed!\n");
+
     return 0;
 }
 
