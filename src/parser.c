@@ -42,6 +42,10 @@ void parser_handle_command(const char *input)
         printf("  LIST                    List all current entries\n");
         printf("  SEARCH <term>           Search keys and values\n");
 
+	printf("  SNAPSHOT CREATE         Create a database snapshot\n");
+	printf("  SNAPSHOT LIST           List all snapshots\n");
+	printf("  SNAPSHOT RESTORE <id>   Restore a database snapshot\n");
+
         printf("\nVersion Control:\n");
         printf("  HISTORY <key>           Show key version history\n");
         printf("  ROLLBACK <key> <ver>   Restore a previous version\n");
@@ -162,6 +166,72 @@ void parser_handle_command(const char *input)
 
         storage_search(term);
     }
+
+    else if (strcmp(command, "SNAPSHOT") == 0) {
+   	 char *action = strtok(NULL, " \t");
+   	 char *snapshot_id_text = strtok(NULL, " \t");
+  	  extra = strtok(NULL, " \t");
+
+   	 if (action == NULL) {
+		 printf("ERR usage: SNAPSHOT CREATE | LIST | RESTORE <id>\n");
+        	 return;
+   	 }
+
+    	if (strcmp(action, "CREATE") == 0) {
+        	if (snapshot_id_text != NULL || extra != NULL) {
+          	 	 printf("ERR usage: SNAPSHOT CREATE\n");
+            		return;
+       	 }
+
+        	int snapshot_id = storage_snapshot_create();
+
+       		if (snapshot_id == 0) {
+            		printf("ERR could not create snapshot. Snapshot limit reached.\n");
+            		return;
+        	}
+
+        	printf("OK: snapshot %d created\n", snapshot_id);
+    	}
+
+    	else if (strcmp(action, "LIST") == 0) {
+        	if (snapshot_id_text != NULL || extra != NULL) {
+            		printf("ERR usage: SNAPSHOT LIST\n");
+            		return;
+        	}
+
+        	printf("\n");
+        	printf("========== Snapshots ==========\n");
+        	storage_snapshot_list();
+        	printf("===============================\n\n");
+    	}
+
+    	else if (strcmp(action, "RESTORE") == 0) {
+        	if (snapshot_id_text == NULL || extra != NULL) {
+            		printf("ERR usage: SNAPSHOT RESTORE <id>\n");
+            		return;
+        	}
+
+        	char *endptr;
+        	long snapshot_id = strtol(snapshot_id_text, &endptr, 10);
+
+        	if (*snapshot_id_text == '\0' || *endptr != '\0' || snapshot_id <= 0 || snapshot_id > 2147483647) {
+            		printf("ERR invalid snapshot ID\n");
+            		return;
+        	}
+
+        	if (storage_snapshot_restore((int)snapshot_id)) {
+            		printf("OK: snapshot %ld restored successfully\n", snapshot_id);
+        	}
+
+        	else {
+            		printf("ERR snapshot %ld not found\n", snapshot_id);
+        	}
+    	}
+
+    	else {
+        	printf("ERR unknown SNAPSHOT action '%s'\n", action);
+    	 }
+     }
 
     else if (strcmp(command, "HISTORY") == 0) {
         key = strtok(NULL, " \t");

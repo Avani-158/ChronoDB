@@ -9,6 +9,19 @@ static int entry_count = 0;
 static HistoryEntry history[MAX_HISTORY];
 static int history_count = 0;
 
+#define MAX_SNAPSHOTS 10
+
+typedef struct
+{
+    int id;
+    Entry entries[MAX_ENTRIES];
+    int entry_count;
+} Snapshot;
+
+static Snapshot snapshots[MAX_SNAPSHOTS];
+static int snapshot_count = 0;
+static int next_snapshot_id = 1;
+
 static int record_history(const char *key, const char *value)
 {
     if (history_count >= MAX_HISTORY) {
@@ -423,4 +436,54 @@ int storage_rollback(const char *key, int version)
     strcpy(entries[current_index].value, restored_value);
 
     return 1;
+}
+
+
+int storage_snapshot_create(void)
+{
+    if (snapshot_count >= MAX_SNAPSHOTS) {
+        return 0;
+    }
+
+    snapshots[snapshot_count].id = next_snapshot_id;
+    snapshots[snapshot_count].entry_count = entry_count;
+
+    memcpy(snapshots[snapshot_count].entries, entries, entry_count * sizeof(Entry));
+
+    snapshot_count++;
+    next_snapshot_id++;
+
+    return snapshots[snapshot_count - 1].id;
+}
+
+void storage_snapshot_list(void)
+{
+    if (snapshot_count == 0) {
+        printf("No snapshots available.\n");
+        return;
+    }
+
+    printf("Snapshot ID\tEntries\n");
+    printf("-------------------------\n");
+
+    for (int i = 0; i < snapshot_count; i++) {
+        printf("%d\t\t%d\n", snapshots[i].id, snapshots[i].entry_count);
+    }
+}
+
+int storage_snapshot_restore(int snapshot_id)
+{
+    if (snapshot_id <= 0) {
+        return 0;
+    }
+
+    for (int i = 0; i < snapshot_count; i++) {
+        if (snapshots[i].id == snapshot_id) {
+            memcpy(entries, snapshots[i].entries, snapshots[i].entry_count * sizeof(Entry));
+            entry_count = snapshots[i].entry_count;
+            return 1;
+        }
+    }
+
+    return 0;
 }

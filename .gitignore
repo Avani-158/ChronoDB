@@ -1,5 +1,6 @@
 # Compiled files
 chronodb
+test_storage
 *.o
 
 # Build directories

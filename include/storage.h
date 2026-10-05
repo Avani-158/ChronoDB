@@ -40,4 +40,10 @@ void storage_history(const char *key);
 
 int storage_rollback(const char *key, int version);
 
+int storage_snapshot_create(void);
+
+void storage_snapshot_list(void);
+
+int storage_snapshot_restore(int snapshot_id);
+
 #endif

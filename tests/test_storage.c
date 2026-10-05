@@ -119,6 +119,27 @@ int main(void)
     assert(storage_search("xyz") == 0);
     printf("PASS: SEARCH no-match handling\n");
 
+    /* Test 15: SNAPSHOT create and restore */
+    assert(storage_snapshot_create() == 1);
+
+    assert(storage_update("username", "updated") == 1);
+    assert(storage_delete("city") == 1);
+
+    assert(storage_get("username") != NULL);
+    assert(strcmp(storage_get("username"), "updated") == 0);
+    assert(storage_get("city") == NULL);
+
+    assert(storage_snapshot_restore(1) == 1);
+
+    assert(strcmp(storage_get("username"), "avani") == 0);
+    assert(strcmp(storage_get("city"), "Chandigarh") == 0);
+
+    printf("PASS: SNAPSHOT create and restore\n");
+
+    /* Test 16: Invalid SNAPSHOT restore */
+    assert(storage_snapshot_restore(999) == 0);
+    printf("PASS: Invalid SNAPSHOT restore\n");
+
     remove("/tmp/chronodb_deleted.db");
     remove("/tmp/chronodb_inconsistent.db");
     remove("/tmp/chronodb_malformed.db");
