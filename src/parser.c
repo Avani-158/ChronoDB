@@ -121,6 +121,7 @@ void parser_handle_command(const char *input)
 
             if (result != NULL) {
                 printf("VALUE: %s\n", result);
+		printf("TYPE: %s\n", storage_type_name(storage_get_type(key)));
             }
 
             else {

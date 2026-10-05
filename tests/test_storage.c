@@ -58,7 +58,7 @@ int main(void)
     file = fopen("/tmp/chronodb_malformed.db", "w");
     assert(file != NULL);
 
-    fprintf(file, "CHRONODB 2 extra\n");
+    fprintf(file, "CHRONODB 3 extra\n");
     fprintf(file, "ENTRIES 0\n");
     fprintf(file, "HISTORY 0\n");
 
@@ -72,12 +72,12 @@ int main(void)
     file = fopen("/tmp/chronodb_inconsistent.db", "w");
     assert(file != NULL);
 
-    fprintf(file, "CHRONODB 2\n");
+    fprintf(file, "CHRONODB 3\n");
     fprintf(file, "ENTRIES 1\n");
-    fprintf(file, "name ananya\n");
+    fprintf(file, "name ananya 0\n");
     fprintf(file, "HISTORY 2\n");
-    fprintf(file, "name avani 1\n");
-    fprintf(file, "name riya 2\n");
+    fprintf(file, "name avani 0 1\n");
+    fprintf(file, "name riya 0 2\n");
 
     fclose(file);
 
@@ -149,6 +149,114 @@ int main(void)
     remove("/tmp/chronodb_malformed.db");
     remove("/tmp/chronodb_test.db");
     remove("/tmp/chronodb_invalid.db");
+
+    /* Test 18: Typed value detection */
+    printf("Test 18: Typed value detection...\n");
+
+    assert(storage_set("typed_integer", "42") == 1);
+    assert(storage_get_type("typed_integer") == TYPE_INTEGER);
+
+    assert(storage_set("typed_float", "42.5") == 1);
+    assert(storage_get_type("typed_float") == TYPE_FLOAT);
+
+    assert(storage_set("typed_boolean", "true") == 1);
+    assert(storage_get_type("typed_boolean") == TYPE_BOOLEAN);
+
+    assert(storage_set("typed_string", "hello") == 1);
+    assert(storage_get_type("typed_string") == TYPE_STRING);
+
+    printf("Test 18 passed.\n");
+
+    /* Test 19: UPDATE changes value type */
+    printf("Test 19: UPDATE changes value type...\n");
+
+    assert(storage_set("changing_type", "100") == 1);
+    assert(storage_get_type("changing_type") == TYPE_INTEGER);
+
+    assert(storage_update("changing_type", "100.5") == 1);
+    assert(storage_get_type("changing_type") == TYPE_FLOAT);
+
+    assert(storage_update("changing_type", "true") == 1);
+    assert(storage_get_type("changing_type") == TYPE_BOOLEAN);
+
+    assert(storage_update("changing_type", "hello") == 1);
+    assert(storage_get_type("changing_type") == TYPE_STRING);
+
+    printf("Test 19 passed.\n");
+
+    /* Test 20: SAVE and LOAD preserve value types */
+    printf("Test 20: SAVE and LOAD preserve value types...\n");
+
+    assert(storage_set("persist_int", "123") == 1);
+    assert(storage_set("persist_float", "123.45") == 1);
+    assert(storage_set("persist_bool", "false") == 1);
+    assert(storage_set("persist_string", "ChronoDB") == 1);
+
+    assert(storage_update("username", "avani") == 1);
+
+    assert(storage_save("data/test_typed.db") == 1);
+    assert(storage_load("data/test_typed.db") == 1);
+
+    assert(storage_get_type("persist_int") == TYPE_INTEGER);
+    assert(storage_get_type("persist_float") == TYPE_FLOAT);
+    assert(storage_get_type("persist_bool") == TYPE_BOOLEAN);
+    assert(storage_get_type("persist_string") == TYPE_STRING);
+
+    printf("Test 20 passed.\n");
+
+    /* Test 21: ROLLBACK restores original value type */
+    printf("Test 21: ROLLBACK restores original value type...\n");
+
+    assert(storage_set("rollback_type", "50") == 1);
+    assert(storage_update("rollback_type", "50.5") == 1);
+    assert(storage_get_type("rollback_type") == TYPE_FLOAT);
+
+    assert(storage_rollback("rollback_type", 1) == 1);
+
+    assert(strcmp(storage_get("rollback_type"), "50") == 0);
+    assert(storage_get_type("rollback_type") == TYPE_INTEGER);
+
+    printf("Test 21 passed.\n");
+
+    /* Test 22: BOOLEAN value detection */
+    printf("Test 22: BOOLEAN value detection...\n");
+
+    assert(storage_set("bool_true", "true") == 1);
+    assert(storage_set("bool_false", "false") == 1);
+
+    assert(storage_get_type("bool_true") == TYPE_BOOLEAN);
+    assert(storage_get_type("bool_false") == TYPE_BOOLEAN);
+
+    assert(strcmp(storage_get("bool_true"), "true") == 0);
+    assert(strcmp(storage_get("bool_false"), "false") == 0);
+
+    printf("Test 22 passed.\n");
+
+    /* Test 23: Negative and decimal numeric values */
+    printf("Test 23: Negative and decimal numeric values...\n");
+
+    assert(storage_set("negative_int", "-25") == 1);
+    assert(storage_set("negative_float", "-25.75") == 1);
+
+    assert(storage_get_type("negative_int") == TYPE_INTEGER);
+    assert(storage_get_type("negative_float") == TYPE_FLOAT);
+
+    printf("Test 23 passed.\n");
+
+    /* Test 24: String value detection */
+    printf("Test 24: String value detection...\n");
+
+    assert(storage_set("normal_text", "hello_world") == 1);
+    assert(storage_set("numeric_text", "123abc") == 1);
+    assert(storage_set("decimal_text", "12.34.56") == 1);
+
+    assert(storage_get_type("normal_text") == TYPE_STRING);
+    assert(storage_get_type("numeric_text") == TYPE_STRING);
+    assert(storage_get_type("decimal_text") == TYPE_STRING);
+
+    printf("Test 24 passed.\n");
+
+    remove("data/test_typed.db");
 
     printf("\nAll storage tests passed!\n");
 

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdlib.h>
 #include "storage.h"
 
 static Entry entries[MAX_ENTRIES];
@@ -22,6 +23,33 @@ static Snapshot snapshots[MAX_SNAPSHOTS];
 static int snapshot_count = 0;
 static int next_snapshot_id = 1;
 
+
+static ValueType detect_value_type(const char *value)
+{
+    if (value == NULL || value[0] == '\0') {
+        return TYPE_STRING;
+    }
+
+    if (strcmp(value, "true") == 0 || strcmp(value, "false") == 0) {
+        return TYPE_BOOLEAN;
+    }
+
+    char *endptr;
+    strtol(value, &endptr, 10);
+
+    if (*endptr == '\0') {
+        return TYPE_INTEGER;
+    }
+
+    strtod(value, &endptr);
+
+    if (*endptr == '\0') {
+        return TYPE_FLOAT;
+    }
+
+    return TYPE_STRING;
+}
+
 static int record_history(const char *key, const char *value)
 {
     if (history_count >= MAX_HISTORY) {
@@ -40,6 +68,7 @@ static int record_history(const char *key, const char *value)
 
     strcpy(history[history_count].key, key);
     strcpy(history[history_count].value, value);
+    history[history_count].type = detect_value_type(value);
     history[history_count].version = version;
     history_count++;
 
@@ -59,6 +88,7 @@ int storage_set(const char *key, const char *value)
             }
 
             strcpy(entries[i].value, value);
+	    entries[i].type=detect_value_type(value);
             return 1;
         }
     }
@@ -73,6 +103,7 @@ int storage_set(const char *key, const char *value)
 
     strcpy(entries[entry_count].key, key);
     strcpy(entries[entry_count].value, value);
+    entries[entry_count].type = detect_value_type(value);
     entry_count++;
 
     return 1;
@@ -102,6 +133,7 @@ int storage_update(const char *key, const char *value)
             }
 
             strcpy(entries[i].value, value);
+	    entries[i].type = detect_value_type(value);
             return 1;
         }
     }
@@ -209,12 +241,12 @@ int storage_save(const char *filename)
 
     int success = 1;
 
-    if (fprintf(file, "CHRONODB 2\n") < 0 || fprintf(file, "ENTRIES %d\n", entry_count) < 0) {
+    if (fprintf(file, "CHRONODB 3\n") < 0 || fprintf(file, "ENTRIES %d\n", entry_count) < 0) {
         success = 0;
     }
 
     for (int i = 0; success && i < entry_count; i++) {
-        if (fprintf(file, "%s %s\n", entries[i].key, entries[i].value) < 0) {
+        if (fprintf(file, "%s %s %d\n", entries[i].key, entries[i].value, entries[i].type) < 0) {
             success = 0;
         }
     }
@@ -224,7 +256,7 @@ int storage_save(const char *filename)
     }
 
     for (int i = 0; success && i < history_count; i++) {
-        if (fprintf(file, "%s %s %d\n", history[i].key, history[i].value, history[i].version) < 0) {
+        if (fprintf(file, "%s %s %d %d\n", history[i].key, history[i].value, history[i].type, history[i].version) < 0) {
             success = 0;
         }
     }
@@ -260,7 +292,7 @@ int storage_load(const char *filename)
     int version;
     char extra;
 
-    if (fgets(line, sizeof(line), file) == NULL || sscanf(line, "%31s %d %c", header, &version, &extra) != 2 || strcmp(header, "CHRONODB") != 0 || version != 2) {
+    if (fgets(line, sizeof(line), file) == NULL || sscanf(line, "%31s %d %c", header, &version, &extra) != 2 || strcmp(header, "CHRONODB") != 0 || version != 3) {
         success = 0;
     }
 
@@ -276,11 +308,18 @@ int storage_load(const char *filename)
     for (int i = 0; success && i < expected_entries; i++) {
         char key[MAX_KEY_LENGTH];
         char value[MAX_VALUE_LENGTH];
+	int value_type;
+	char extra;
 
-        if (fgets(line, sizeof(line), file) == NULL || sscanf(line, "%49s %199s %c", key, value, &extra) != 2) {
+        if (fgets(line, sizeof(line), file) == NULL || sscanf(line, "%49s %199s %d  %c", key, value, &value_type,  &extra) != 3) {
             success = 0;
             break;
         }
+
+	if (value_type < TYPE_STRING || value_type > TYPE_BOOLEAN) {
+              success = 0;
+	      break;
+	}
 
         for (int j = 0; j < loaded_count; j++) {
             if (strcmp(loaded[j].key, key) == 0) {
@@ -295,6 +334,7 @@ int storage_load(const char *filename)
 
         strcpy(loaded[loaded_count].key, key);
         strcpy(loaded[loaded_count].value, value);
+	loaded[loaded_count].type = (ValueType)value_type;
         loaded_count++;
     }
 
@@ -307,12 +347,19 @@ int storage_load(const char *filename)
     for (int i = 0; success && i < expected_history; i++) {
         char key[MAX_KEY_LENGTH];
         char value[MAX_VALUE_LENGTH];
+	int value_type;
         int history_version;
+	char extra;
 
-        if (fgets(line, sizeof(line), file) == NULL || sscanf(line, "%49s %199s %d %c", key, value, &history_version, &extra) != 3 || history_version <= 0) {
+        if (fgets(line, sizeof(line), file) == NULL || sscanf(line, "%49s %199s %d %d %c", key, value, &value_type,  &history_version, &extra) != 4 || history_version <= 0) {
             success = 0;
             break;
         }
+
+	if (value_type < TYPE_STRING || value_type > TYPE_BOOLEAN) {
+		success = 0;
+		break;
+	}
 
         for (int j = 0; j < loaded_history_count; j++) {
             if (strcmp(loaded_history[j].key, key) == 0 && loaded_history[j].version == history_version) {
@@ -327,6 +374,7 @@ int storage_load(const char *filename)
 
         strcpy(loaded_history[loaded_history_count].key, key);
         strcpy(loaded_history[loaded_history_count].value, value);
+	loaded_history[loaded_history_count].type = (ValueType)value_type;
         loaded_history[loaded_history_count].version = history_version;
         loaded_history_count++;
     }
@@ -334,15 +382,17 @@ int storage_load(const char *filename)
     for (int i = 0; success && i < loaded_count; i++) {
         int latest_version = 0;
         const char *latest_value = NULL;
+	ValueType latest_type = TYPE_STRING;
 
         for (int j = 0; j < loaded_history_count; j++) {
             if (strcmp(loaded[i].key, loaded_history[j].key) == 0 && loaded_history[j].version > latest_version) {
                 latest_version = loaded_history[j].version;
                 latest_value = loaded_history[j].value;
+		latest_type = loaded_history[j].type;
             }
         }
 
-        if (latest_value == NULL || strcmp(loaded[i].value, latest_value) != 0) {
+        if (latest_value == NULL || strcmp(loaded[i].value, latest_value) != 0 || loaded[i].type != latest_type) {
             success = 0;
         }
     }
@@ -427,13 +477,17 @@ int storage_rollback(const char *key, int version)
     }
 
     char restored_value[MAX_VALUE_LENGTH];
+    ValueType restored_type = history[history_index].type;
+
     strcpy(restored_value, history[history_index].value);
 
     if (!record_history(key, restored_value)) {
         return 0;
     }
 
+    history[history_count - 1].type = restored_type;
     strcpy(entries[current_index].value, restored_value);
+    entries[current_index].type = restored_type;
 
     return 1;
 }
@@ -498,4 +552,32 @@ void storage_stats(void)
     printf("Snapshots       : %d / %d\n", snapshot_count, MAX_SNAPSHOTS);
     printf("Next snapshot ID: %d\n", next_snapshot_id);
     printf("=========================================\n\n");
+}
+
+const char *storage_type_name(ValueType type)
+{
+    switch (type) {
+        case TYPE_STRING:
+            return "STRING";
+        case TYPE_INTEGER:
+            return "INTEGER";
+        case TYPE_FLOAT:
+            return "FLOAT";
+        case TYPE_BOOLEAN:
+            return "BOOLEAN";
+        default:
+            return "UNKNOWN";
+    }
+}
+
+
+ValueType storage_get_type(const char *key)
+{
+    for (int i = 0; i < entry_count; i++) {
+        if (strcmp(entries[i].key, key) == 0) {
+            return entries[i].type;
+        }
+    }
+
+    return TYPE_STRING;
 }
