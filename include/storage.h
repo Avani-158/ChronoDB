@@ -30,6 +30,8 @@ int storage_delete(const char *key);
 
 void storage_list(void);
 
+int storage_search(const char *term);
+
 int storage_save(const char *filename);
 
 int storage_load(const char *filename);

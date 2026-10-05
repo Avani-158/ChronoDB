@@ -1,4 +1,3 @@
-
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -44,15 +43,16 @@ int main(void)
 
     /* Test 7: Invalid database file */
     assert(storage_set("safe", "value") == 1);
+
     FILE *file = fopen("/tmp/chronodb_invalid.db", "w");
     assert(file != NULL);
+
     fprintf(file, "INVALID DATABASE\n");
     fclose(file);
 
     assert(storage_load("/tmp/chronodb_invalid.db") == 0);
-    assert(strcmp(storage_get("safe"), "value")==0);
+    assert(strcmp(storage_get("safe"), "value") == 0);
     printf("PASS: Invalid database rejection\n");
-
 
     /* Test 8: Malformed database header */
     file = fopen("/tmp/chronodb_malformed.db", "w");
@@ -61,14 +61,12 @@ int main(void)
     fprintf(file, "CHRONODB 2 extra\n");
     fprintf(file, "ENTRIES 0\n");
     fprintf(file, "HISTORY 0\n");
-    
+
     fclose(file);
 
     assert(storage_load("/tmp/chronodb_malformed.db") == 0);
     assert(strcmp(storage_get("safe"), "value") == 0);
-
     printf("PASS: Malformed header rejection\n");
-
 
     /* Test 9: Inconsistent history rejection */
     file = fopen("/tmp/chronodb_inconsistent.db", "w");
@@ -80,15 +78,12 @@ int main(void)
     fprintf(file, "HISTORY 2\n");
     fprintf(file, "name avani 1\n");
     fprintf(file, "name riya 2\n");
+
     fclose(file);
 
     assert(storage_load("/tmp/chronodb_inconsistent.db") == 0);
     assert(strcmp(storage_get("safe"), "value") == 0);
-
     printf("PASS: Inconsistent history rejection\n");
-
-  
-
 
     /* Test 10: Deleted key history survives loading */
     assert(storage_set("deleted", "first") == 1);
@@ -105,8 +100,26 @@ int main(void)
 
     printf("PASS: Deleted key history survives loading\n");
 
-    remove("/tmp/chronodb_deleted.db");
+    /* Test 11: SEARCH by key */
+    assert(storage_set("username", "avani") == 1);
+    assert(storage_set("city", "Chandigarh") == 1);
 
+    assert(storage_search("user") == 1);
+    printf("PASS: SEARCH by key\n");
+
+    /* Test 12: SEARCH by value */
+    assert(storage_search("chand") == 1);
+    printf("PASS: SEARCH by value\n");
+
+    /* Test 13: SEARCH is case-insensitive */
+    assert(storage_search("CHANDIGARH") == 1);
+    printf("PASS: Case-insensitive SEARCH\n");
+
+    /* Test 14: SEARCH with no match */
+    assert(storage_search("xyz") == 0);
+    printf("PASS: SEARCH no-match handling\n");
+
+    remove("/tmp/chronodb_deleted.db");
     remove("/tmp/chronodb_inconsistent.db");
     remove("/tmp/chronodb_malformed.db");
     remove("/tmp/chronodb_test.db");
@@ -116,4 +129,3 @@ int main(void)
 
     return 0;
 }
-
