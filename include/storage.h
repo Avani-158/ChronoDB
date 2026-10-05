@@ -46,4 +46,6 @@ void storage_snapshot_list(void);
 
 int storage_snapshot_restore(int snapshot_id);
 
+void storage_stats(void);
+
 #endif

@@ -487,3 +487,15 @@ int storage_snapshot_restore(int snapshot_id)
 
     return 0;
 }
+
+
+void storage_stats(void)
+{
+    printf("\n");
+    printf("========== Database Statistics ==========\n");
+    printf("Current entries : %d / %d\n", entry_count, MAX_ENTRIES);
+    printf("History records : %d / %d\n", history_count, MAX_HISTORY);
+    printf("Snapshots       : %d / %d\n", snapshot_count, MAX_SNAPSHOTS);
+    printf("Next snapshot ID: %d\n", next_snapshot_id);
+    printf("=========================================\n\n");
+}

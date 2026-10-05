@@ -55,6 +55,7 @@ void parser_handle_command(const char *input)
         printf("  LOAD                    Load database from disk\n");
 
         printf("\nSystem:\n");
+	printf("  STATS                   Show database statistics\n");
         printf("  HELP                    Show this help message\n");
         printf("  EXIT                    Exit ChronoDB\n");
 
@@ -313,6 +314,15 @@ void parser_handle_command(const char *input)
         else {
             printf("ERR could not load database\n");
         }
+    }
+
+    else if (strcmp(command, "STATS") == 0) {
+   	 if (strtok(NULL, " \t") != NULL) {
+        	printf("ERR usage: STATS\n");
+        	return;
+   	 }
+
+    	storage_stats();
     }
 
     else if (strcmp(command, "EXIT") == 0) {

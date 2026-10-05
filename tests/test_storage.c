@@ -140,6 +140,10 @@ int main(void)
     assert(storage_snapshot_restore(999) == 0);
     printf("PASS: Invalid SNAPSHOT restore\n");
 
+    /* Test 17: Database statistics */
+    storage_stats();
+    printf("PASS: Database statistics\n");
+
     remove("/tmp/chronodb_deleted.db");
     remove("/tmp/chronodb_inconsistent.db");
     remove("/tmp/chronodb_malformed.db");
