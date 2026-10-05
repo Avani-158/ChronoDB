@@ -27,6 +27,7 @@ void parser_handle_command(const char *input)
         return;
     }
 
+    /* HELP */
     if (strcmp(command, "HELP") == 0)
     {
         if (strtok(NULL, " \t") != NULL)
@@ -35,21 +36,34 @@ void parser_handle_command(const char *input)
             return;
         }
 
-        printf("Available commands:\n");
-        printf("  HELP\n");
-        printf("  SET <key> <value>\n");
-        printf("  GET <key>\n");
-        printf("  UPDATE <key> <value>\n");
-        printf("  DELETE <key>\n");
-        printf("  LIST\n");
-        printf("  SAVE\n");
-        printf("  LOAD\n");
-    printf("  HISTORY <key>\n");
-    printf("  ROLLBACK <key> <version>\n");
-        printf("  EXIT\n");
+        printf("\n");
+        printf("========== ChronoDB Commands ==========\n");
+        printf("\n");
+
+        printf("Data Operations:\n");
+        printf("  SET <key> <value>       Create or replace a key\n");
+        printf("  GET <key>               Retrieve a value\n");
+        printf("  UPDATE <key> <value>   Update an existing key\n");
+        printf("  DELETE <key>            Delete a key\n");
+        printf("  LIST                    List all current entries\n");
+
+        printf("\nVersion Control:\n");
+        printf("  HISTORY <key>           Show key version history\n");
+        printf("  ROLLBACK <key> <ver>   Restore a previous version\n");
+
+        printf("\nPersistence:\n");
+        printf("  SAVE                    Save database to disk\n");
+        printf("  LOAD                    Load database from disk\n");
+
+        printf("\nSystem:\n");
+        printf("  HELP                    Show this help message\n");
+        printf("  EXIT                    Exit ChronoDB\n");
+
+        printf("\n=======================================\n\n");
     }
-    else if (strcmp(command, "SET") == 0 ||
-             strcmp(command, "UPDATE") == 0)
+
+    /* SET / UPDATE */
+    else if (strcmp(command, "SET") == 0 || strcmp(command, "UPDATE") == 0)
     {
         key = strtok(NULL, " \t");
         value = strtok(NULL, " \t");
@@ -61,8 +75,7 @@ void parser_handle_command(const char *input)
             return;
         }
 
-        if (strlen(key) >= MAX_KEY_LENGTH ||
-            strlen(value) >= MAX_VALUE_LENGTH)
+        if (strlen(key) >= MAX_KEY_LENGTH || strlen(value) >= MAX_VALUE_LENGTH)
         {
             printf("ERR key or value too long\n");
             return;
@@ -76,9 +89,11 @@ void parser_handle_command(const char *input)
 
             if (!success)
             {
-                printf("ERR storage is full\n");
+                printf("ERR could not set key. Database may be full.\n");
                 return;
             }
+
+            printf("OK: key '%s' stored successfully\n", key);
         }
         else
         {
@@ -86,15 +101,16 @@ void parser_handle_command(const char *input)
 
             if (!success)
             {
-                printf("ERR key not found\n");
+                printf("ERR key '%s' not found\n", key);
                 return;
             }
-        }
 
-        printf("OK\n");
+            printf("OK: key '%s' updated successfully\n", key);
+        }
     }
-    else if (strcmp(command, "GET") == 0 ||
-             strcmp(command, "DELETE") == 0)
+
+    /* GET / DELETE */
+    else if (strcmp(command, "GET") == 0 || strcmp(command, "DELETE") == 0)
     {
         key = strtok(NULL, " \t");
         extra = strtok(NULL, " \t");
@@ -117,25 +133,27 @@ void parser_handle_command(const char *input)
 
             if (result != NULL)
             {
-                printf("%s\n", result);
+                printf("VALUE: %s\n", result);
             }
             else
             {
-                printf("ERR key not found\n");
+                printf("ERR key '%s' not found\n", key);
             }
         }
         else
         {
             if (storage_delete(key))
             {
-                printf("OK\n");
+                printf("OK: key '%s' deleted\n", key);
             }
             else
             {
-                printf("ERR key not found\n");
+                printf("ERR key '%s' not found\n", key);
             }
         }
     }
+
+    /* LIST */
     else if (strcmp(command, "LIST") == 0)
     {
         if (strtok(NULL, " \t") != NULL)
@@ -144,98 +162,113 @@ void parser_handle_command(const char *input)
             return;
         }
 
+        printf("\n");
+        printf("========== Current Entries ==========\n");
         storage_list();
+        printf("=====================================\n\n");
     }
 
-   else if (strcmp(command, "HISTORY") == 0)
-   {
+    /* HISTORY */
+    else if (strcmp(command, "HISTORY") == 0)
+    {
         key = strtok(NULL, " \t");
         extra = strtok(NULL, " \t");
 
-     if (key == NULL || extra != NULL)
-         {
-         printf("ERR usage: HISTORY <key>\n");
-             return;
-     }
-
-     if (strlen(key) >= MAX_KEY_LENGTH)
+        if (key == NULL || extra != NULL)
         {
-             printf("ERR key too long\n");
+            printf("ERR usage: HISTORY <key>\n");
             return;
-     }
+        }
 
-     storage_history(key);
-  }
-   else if (strcmp(command, "ROLLBACK") == 0)
-   {
-       key = strtok(NULL, " \t");
-       char *version_text = strtok(NULL, " \t");
-       extra = strtok(NULL, " \t");
+        if (strlen(key) >= MAX_KEY_LENGTH)
+        {
+            printf("ERR key too long\n");
+            return;
+        }
 
-       if (key == NULL || version_text == NULL || extra != NULL )
-       {
-             printf("ERR usage: ROLLBACK <key> <version>\n");
-             return;
-       }
-
-       if (strlen(key) >= MAX_KEY_LENGTH)
-       {
-             printf("ERR key too long\n");
-             return;
-           }
-
-       char *endptr;
-       long version = strtol(version_text, &endptr, 10);
-
-       if (*version_text == '\0' || *endptr != '\0' || version <= 0 || version > 2147483647)
-      {
-              printf("ERR invalid version\n");
-             return;
-      }
-
-     if (storage_rollback(key, (int)version))
-     {
-             printf("OK: rollback successful\n");
-      }
-      else
-       {
-              printf("ERR rollback failed: key or version not found, or history full\n");
-     }
+        printf("\n");
+        storage_history(key);
+        printf("\n");
     }
+
+    /* ROLLBACK */
+    else if (strcmp(command, "ROLLBACK") == 0)
+    {
+        key = strtok(NULL, " \t");
+        char *version_text = strtok(NULL, " \t");
+        extra = strtok(NULL, " \t");
+
+        if (key == NULL || version_text == NULL || extra != NULL)
+        {
+            printf("ERR usage: ROLLBACK <key> <version>\n");
+            return;
+        }
+
+        if (strlen(key) >= MAX_KEY_LENGTH)
+        {
+            printf("ERR key too long\n");
+            return;
+        }
+
+        char *endptr;
+        long version = strtol(version_text, &endptr, 10);
+
+        if (*version_text == '\0' || *endptr != '\0' || version <= 0 || version > 2147483647)
+        {
+            printf("ERR invalid version\n");
+            return;
+        }
+
+        if (storage_rollback(key, (int)version))
+        {
+            printf("OK: key '%s' rolled back to version %ld\n",
+                   key, version);
+        }
+        else
+        {
+            printf("ERR rollback failed: key or version not found, or history full\n");
+        }
+    }
+
+    /* SAVE */
     else if (strcmp(command, "SAVE") == 0)
     {
-         if (strtok(NULL, " \t") != NULL)
-         {
-                 printf("ERR usage: SAVE\n");
-                 return;
-         }
+        if (strtok(NULL, " \t") != NULL)
+        {
+            printf("ERR usage: SAVE\n");
+            return;
+        }
 
-         if (storage_save("data/chronodb.db"))
-         {
-                 printf("OK: database saved\n");
-         }
-         else
-         {
-                 printf("ERR could not save database\n");
-         }
+        if (storage_save("data/chronodb.db"))
+        {
+            printf("OK: database saved to data/chronodb.db\n");
+        }
+        else
+        {
+            printf("ERR could not save database\n");
+        }
     }
+
+    /* LOAD */
     else if (strcmp(command, "LOAD") == 0)
     {
         if (strtok(NULL, " \t") != NULL)
-         {
-                printf("ERR usage: LOAD\n");
-                return;
-         }
-
-         if (storage_load("data/chronodb.db"))
-         {
-                printf("OK: database loaded\n");
-         }
-         else
         {
-                printf("ERR could not load database\n");
-         }
+            printf("ERR usage: LOAD\n");
+            return;
+        }
+
+        if (storage_load("data/chronodb.db"))
+        {
+            printf("OK: database loaded successfully\n");
+        }
+        else
+        {
+            printf("ERR could not load database\n");
+        }
     }
+
+    /* EXIT */
     else if (strcmp(command, "EXIT") == 0)
     {
         if (strtok(NULL, " \t") != NULL)
@@ -246,8 +279,10 @@ void parser_handle_command(const char *input)
 
         printf("Goodbye.\n");
     }
+
+    /* UNKNOWN COMMAND */
     else
     {
-        printf("ERR unknown command. Type HELP.\n");
+        printf("ERR unknown command '%s'. Type HELP.\n", command);
     }
-}
+} 

@@ -6,8 +6,15 @@ int main(void)
 {
     char input[100];
 
-    printf("ChronoDB 1.0\n");
-    printf("Type HELP for commands.\n");
+    printf("\n");
+    printf("╔════════════════════════════════════════════╗\n");
+    printf("║              CHRONODB v1.0                 ║\n");
+    printf("║       Version-Controlled KV Database       ║\n");
+    printf("╚════════════════════════════════════════════╝\n");
+    printf("\n");
+    printf("Database : data/chronodb.db\n");
+    printf("Type HELP for available commands.\n");
+    printf("Type EXIT to quit.\n\n");
 
     while (1)
     {
