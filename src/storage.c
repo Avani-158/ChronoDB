@@ -7,6 +7,11 @@
 static Entry entries[MAX_ENTRIES];
 static int entry_count = 0;
 
+static Entry transaction_entries[MAX_ENTRIES];
+static int transaction_entry_count = 0;
+static int transaction_history_count = 0;
+static int transaction_active = 0;
+
 static HistoryEntry history[MAX_HISTORY];
 static int history_count = 0;
 
@@ -580,4 +585,56 @@ ValueType storage_get_type(const char *key)
     }
 
     return TYPE_STRING;
+}
+
+
+
+int storage_transaction_begin(void)
+{
+    if (transaction_active) {
+        return 0;
+    }
+
+    memcpy(transaction_entries, entries, entry_count * sizeof(Entry));
+    transaction_entry_count = entry_count;
+    transaction_history_count = history_count;
+    transaction_active = 1;
+
+    return 1;
+}
+
+
+int storage_transaction_commit(void)
+{
+    if (!transaction_active) {
+        return 0;
+    }
+
+    transaction_active = 0;
+    transaction_entry_count = 0;
+
+    return 1;
+}
+
+
+int storage_transaction_abort(void)
+{
+    if (!transaction_active) {
+        return 0;
+    }
+
+    memcpy(entries, transaction_entries, transaction_entry_count * sizeof(Entry));
+    entry_count = transaction_entry_count;
+    history_count = transaction_history_count;
+    transaction_active = 0;
+    transaction_entry_count = 0;
+    transaction_history_count = 0;
+
+    return 1;
+}
+
+
+int storage_transaction_active(void)
+{
+    return transaction_active;
 }

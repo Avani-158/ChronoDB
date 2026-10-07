@@ -62,4 +62,12 @@ const char *storage_type_name(ValueType type);
 
 ValueType storage_get_type(const char *key);
 
+int storage_transaction_begin(void);
+
+int storage_transaction_commit(void);
+
+int storage_transaction_abort(void);
+
+int storage_transaction_active(void);
+
 #endif

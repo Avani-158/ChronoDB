@@ -50,6 +50,11 @@ void parser_handle_command(const char *input)
         printf("  HISTORY <key>           Show key version history\n");
         printf("  ROLLBACK <key> <ver>   Restore a previous version\n");
 
+	printf("\nTransactions:\n");
+        printf("  BEGIN                   Start a transaction\n");
+        printf("  COMMIT                  Commit the current transaction\n");
+        printf("  ABORT                   Abort the current transaction\n");
+
         printf("\nPersistence:\n");
         printf("  SAVE                    Save database to disk\n");
         printf("  LOAD                    Load database from disk\n");
@@ -250,7 +255,7 @@ void parser_handle_command(const char *input)
         }
 
         printf("\n");
-        storage_history(key);
+	storage_history(key);
         printf("\n");
     }
 
@@ -324,6 +329,48 @@ void parser_handle_command(const char *input)
    	 }
 
     	storage_stats();
+    }
+    else if (strcmp(command, "BEGIN") == 0) {
+	    if (strtok(NULL, " \t") != NULL) {
+		    printf("ERR usage: BEGIN\n");
+		    return;
+	    }
+
+	    if (storage_transaction_begin()) {
+		    printf("OK: transaction started\n");
+	    }
+
+	    else {
+		    printf("ERR transaction already active\n");
+	    }
+    }
+    else if (strcmp(command, "COMMIT") == 0) {
+	    if (strtok(NULL, " \t") != NULL) {
+		    printf("ERR usage: COMMIT\n");
+		    return;
+	    }
+
+	    if (storage_transaction_commit()) {
+		    printf("OK: transaction committed\n");
+	    }
+
+	    else {
+		    printf("ERR no active transaction\n");
+	    }
+    }
+    else if (strcmp(command, "ABORT") == 0) {
+	    if (strtok(NULL, " \t") != NULL) {
+		    printf("ERR usage: ABORT\n");
+		    return;
+	    }
+
+	    if (storage_transaction_abort()) {
+		    printf("OK: transaction aborted\n");
+	    }
+
+	    else {
+		    printf("ERR no active transaction\n");
+	    }
     }
 
     else if (strcmp(command, "EXIT") == 0) {

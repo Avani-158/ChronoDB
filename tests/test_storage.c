@@ -256,6 +256,116 @@ int main(void)
 
     printf("Test 24 passed.\n");
 
+        /* Test 25: BEGIN and transaction state */
+    printf("Test 25: BEGIN transaction...\n");
+
+    assert(storage_transaction_commit() == 0);
+    assert(storage_transaction_abort() == 0);
+    assert(storage_transaction_begin() == 1);
+    assert(storage_transaction_active() == 1);
+    assert(storage_transaction_begin() == 0);
+    assert(storage_transaction_abort() == 1);
+
+    printf("Test 25 passed.\n");
+
+    /* Test 26: COMMIT keeps transaction changes */
+    printf("Test 26: COMMIT keeps transaction changes...\n");
+
+    assert(storage_set("transaction_commit", "100") == 1);
+    assert(storage_transaction_begin() == 1);
+    assert(storage_update("transaction_commit", "200") == 1);
+    assert(storage_transaction_commit() == 1);
+
+    assert(strcmp(storage_get("transaction_commit"), "200") == 0);
+    assert(storage_get_type("transaction_commit") == TYPE_INTEGER);
+    assert(storage_transaction_active() == 0);
+
+    printf("Test 26 passed.\n");
+
+    /* Test 27: ABORT restores previous value */
+    printf("Test 27: ABORT restores previous value...\n");
+
+    assert(storage_set("transaction_abort", "original") == 1);
+
+    assert(storage_transaction_begin() == 1);
+    assert(storage_update("transaction_abort", "changed") == 1);
+    assert(strcmp(storage_get("transaction_abort"), "changed") == 0);
+
+    assert(storage_transaction_abort() == 1);
+
+    assert(strcmp(storage_get("transaction_abort"), "original") == 0);
+    assert(storage_get_type("transaction_abort") == TYPE_STRING);
+    assert(storage_transaction_active() == 0);
+
+    printf("Test 27 passed.\n");
+
+    /* Test 28: ABORT restores original value type */
+    printf("Test 28: ABORT restores original value type...\n");
+
+    assert(storage_set("transaction_type", "50") == 1);
+    assert(storage_get_type("transaction_type") == TYPE_INTEGER);
+
+    assert(storage_transaction_begin() == 1);
+    assert(storage_update("transaction_type", "50.5") == 1);
+    assert(storage_get_type("transaction_type") == TYPE_FLOAT);
+
+    assert(storage_transaction_abort() == 1);
+
+    assert(strcmp(storage_get("transaction_type"), "50") == 0);
+    assert(storage_get_type("transaction_type") == TYPE_INTEGER);
+
+    printf("Test 28 passed.\n");
+
+    /* Test 29: ABORT restores history state */
+    printf("Test 29: ABORT restores history state...\n");
+
+    assert(storage_set("transaction_history", "one") == 1);
+
+    assert(storage_transaction_begin() == 1);
+    assert(storage_update("transaction_history", "two") == 1);
+    assert(storage_transaction_abort() == 1);
+
+    assert(strcmp(storage_get("transaction_history"), "one") == 0);
+
+    printf("Test 29 passed.\n");
+
+    /* Test 30: Multiple changes can be committed */
+    printf("Test 30: COMMIT multiple changes...\n");
+
+    assert(storage_transaction_begin() == 1);
+
+    assert(storage_set("transaction_a", "10") == 1);
+    assert(storage_set("transaction_b", "20") == 1);
+    assert(storage_set("transaction_c", "30") == 1);
+
+    assert(storage_transaction_commit() == 1);
+
+    assert(strcmp(storage_get("transaction_a"), "10") == 0);
+    assert(strcmp(storage_get("transaction_b"), "20") == 0);
+    assert(strcmp(storage_get("transaction_c"), "30") == 0);
+
+    printf("Test 30 passed.\n");
+
+    /* Test 31: ABORT multiple changes */
+    printf("Test 31: ABORT multiple changes...\n");
+
+    assert(storage_set("transaction_x", "old") == 1);
+    assert(storage_set("transaction_y", "old") == 1);
+
+    assert(storage_transaction_begin() == 1);
+
+    assert(storage_update("transaction_x", "new") == 1);
+    assert(storage_update("transaction_y", "new") == 1);
+    assert(storage_set("transaction_z", "temporary") == 1);
+
+    assert(storage_transaction_abort() == 1);
+
+    assert(strcmp(storage_get("transaction_x"), "old") == 0);
+    assert(strcmp(storage_get("transaction_y"), "old") == 0);
+    assert(storage_get("transaction_z") == NULL);
+
+    printf("Test 31 passed.\n");
+
     remove("data/test_typed.db");
 
     printf("\nAll storage tests passed!\n");
