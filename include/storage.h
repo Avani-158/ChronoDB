@@ -4,6 +4,8 @@
 #define MAX_ENTRIES 100
 #define MAX_KEY_LENGTH 50
 #define MAX_VALUE_LENGTH 200
+#define MAX_ENTITIES 20
+#define MAX_ENTITY_NAME_LENGTH 50
 
 typedef enum
 {
@@ -18,7 +20,22 @@ typedef struct
     char key[MAX_KEY_LENGTH];
     char value[MAX_VALUE_LENGTH];
     ValueType type;
+    int entity_index;
+    int record_id;
 } Entry;
+
+typedef struct
+{
+    char name[MAX_ENTITY_NAME_LENGTH];
+} Entity;
+
+#define MAX_RECORDS 100
+
+typedef struct
+{
+    int id;
+    int entity_index;
+} Record;
 
 #define MAX_HISTORY 500
 
@@ -28,6 +45,8 @@ typedef struct
     char value[MAX_VALUE_LENGTH];
     ValueType type;
     int version;
+    int entity_index;
+    int record_id;
 } HistoryEntry;
 
 int storage_set(const char *key, const char *value);
@@ -69,5 +88,23 @@ int storage_transaction_commit(void);
 int storage_transaction_abort(void);
 
 int storage_transaction_active(void);
+
+int storage_create_entity(const char *name);
+
+void storage_list_entities(void);
+
+int storage_use_entity(const char *name);
+
+const char *storage_current_entity(void);
+
+int storage_create_record(void);
+
+void storage_list_records(void);
+
+int storage_use_record(int id);
+
+int storage_current_record(void);
+
+int storage_has_current_context(void);
 
 #endif

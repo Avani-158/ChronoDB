@@ -35,12 +35,18 @@ void parser_handle_command(const char *input)
         printf("========== ChronoDB Commands ==========\n\n");
 
         printf("Data Operations:\n");
-        printf("  SET <key> <value>       Create or replace a key\n");
+        printf("  SET <key> <value>       Create a new key\n");
         printf("  GET <key>               Retrieve a value\n");
-        printf("  UPDATE <key> <value>   Update an existing key\n");
+        printf("  UPDATE <key> <value>    Update an existing key\n");
         printf("  DELETE <key>            Delete a key\n");
         printf("  LIST                    List all current entries\n");
         printf("  SEARCH <term>           Search keys and values\n");
+	printf("  CREATE ENTITY <name>    Create an entity\n");
+	printf("  LIST ENTITIES           List all entities\n");
+	printf("  USE <entity>            Select the current entity\n");
+	printf("  CREATE RECORD           Create a new record\n");
+	printf("  LIST RECORDS            List records in current entity\n");
+	printf("  USE RECORD <id>         Select a record\n");
 
 	printf("  SNAPSHOT CREATE         Create a database snapshot\n");
 	printf("  SNAPSHOT LIST           List all snapshots\n");
@@ -48,7 +54,7 @@ void parser_handle_command(const char *input)
 
         printf("\nVersion Control:\n");
         printf("  HISTORY <key>           Show key version history\n");
-        printf("  ROLLBACK <key> <ver>   Restore a previous version\n");
+        printf("  ROLLBACK <key> <ver>    Restore a previous version\n");
 
 	printf("\nTransactions:\n");
         printf("  BEGIN                   Start a transaction\n");
@@ -84,27 +90,35 @@ void parser_handle_command(const char *input)
 
         int success;
 
-        if (strcmp(command, "SET") == 0) {
-            success = storage_set(key, value);
+	if (strcmp(command, "SET") == 0) {
+    		success = storage_set(key, value);
 
-            if (!success) {
-                printf("ERR could not set key. Database may be full.\n");
-                return;
-            }
+    		if (!success) {
+        		if (storage_get(key) != NULL) {
+            			printf("ERR key '%s' already exists. Use UPDATE to modify it.\n", key);
+        		}
 
-            printf("OK: key '%s' stored successfully\n", key);
-        }
+        		else {
+            			printf("ERR could not set key. Select an entity and record first or database may be full.\n");
+        		}
 
-        else {
-            success = storage_update(key, value);
+       			 return;
+    		}
 
-            if (!success) {
-                printf("ERR key '%s' not found\n", key);
-                return;
-            }
+    		printf("OK: key '%s' created successfully\n", key);
+	}
 
-            printf("OK: key '%s' updated successfully\n", key);
-        }
+	else {
+    		success = storage_update(key, value);
+
+    		if (!success) {
+        		printf("ERR key '%s' not found\n", key);
+        		return;
+    		}
+
+    		printf("OK: key '%s' updated successfully\n", key);
+	}
+	    
     }
 
     else if (strcmp(command, "GET") == 0 || strcmp(command, "DELETE") == 0) {
@@ -146,17 +160,40 @@ void parser_handle_command(const char *input)
     }
 
     else if (strcmp(command, "LIST") == 0) {
-        if (strtok(NULL, " \t") != NULL) {
-            printf("ERR usage: LIST\n");
-            return;
-        }
+    	char *object = strtok(NULL, " \t");
 
-        printf("\n");
-        printf("========== Current Entries ==========\n");
-        storage_list();
-        printf("=====================================\n\n");
+    	if (object != NULL && strcmp(object, "ENTITIES") == 0) {
+        	if (strtok(NULL, " \t") != NULL) {
+            		printf("ERR usage: LIST ENTITIES\n");
+            		return;
+        	}
+
+        	storage_list_entities();
+        	return;
+    	}
+
+    	if (object != NULL && strcmp(object, "RECORDS") == 0) {
+        	if (strtok(NULL, " \t") != NULL) {
+            		printf("ERR usage: LIST RECORDS\n");
+            		return;
+        	}	
+
+        	storage_list_records();
+        	return;
+    	}	
+
+    	if (object != NULL) {
+        	printf("ERR usage: LIST, LIST ENTITIES, or LIST RECORDS\n");
+        	return;
+    	}
+
+    	printf("\n");
+    	printf("========== Current Entries ==========\n");
+    	storage_list();
+    	printf("=====================================\n\n");
     }
-
+    
+    
     else if (strcmp(command, "SEARCH") == 0) {
         char *term = strtok(NULL, " \t");
         extra = strtok(NULL, " \t");
@@ -321,6 +358,102 @@ void parser_handle_command(const char *input)
             printf("ERR could not load database\n");
         }
     }
+
+    else if (strcmp(command, "CREATE") == 0) {
+        char *object = strtok(NULL, " \t");
+        char *name = strtok(NULL, " \t");
+        extra = strtok(NULL, " \t");
+
+        if (object == NULL) {
+            printf("ERR usage: CREATE ENTITY <name> or CREATE RECORD\n");
+            return;
+        }
+
+        if (strcmp(object, "RECORD") == 0) {
+            if (name != NULL || extra != NULL) {
+                printf("ERR usage: CREATE RECORD\n");
+                return;
+            }
+
+            if (!storage_create_record()) {
+                printf("ERR select an entity first or record limit reached\n");
+                return;
+            }
+
+            printf("OK: record created successfully\n");
+            return;
+        }
+
+        if (strcmp(object, "ENTITY") == 0) {
+            if (name == NULL || extra != NULL) {
+                printf("ERR usage: CREATE ENTITY <name>\n");
+                return;
+            }
+
+            if (strlen(name) >= MAX_ENTITY_NAME_LENGTH) {
+                printf("ERR entity name too long\n");
+                return;
+            }
+
+            if (!storage_create_entity(name)) {
+                printf("ERR could not create entity. It may already exist or the database may be full.\n");
+                return;
+            }
+
+            printf("OK: entity '%s' created successfully\n", name);
+            return;
+        }
+
+        printf("ERR usage: CREATE ENTITY <name> or CREATE RECORD\n");
+    }
+
+
+    else if (strcmp(command, "USE") == 0) {
+    	char *object = strtok(NULL, " \t");
+    	char *name = strtok(NULL, " \t");
+    	extra = strtok(NULL, " \t");
+
+    	if (object == NULL) {
+        	printf("ERR usage: USE <entity> or USE RECORD <id>\n");
+        	return;
+    	}
+
+    	if (strcmp(object, "RECORD") == 0) {
+        	if (name == NULL || extra != NULL) {
+            		printf("ERR usage: USE RECORD <id>\n");
+            		return;
+        	}
+
+        	char *endptr;
+        	long id = strtol(name, &endptr, 10);
+
+        	if (*endptr != '\0' || id <= 0) {
+            		printf("ERR invalid record id\n");
+            		return;
+        	}
+
+        	if (!storage_use_record((int)id)) {
+            		printf("ERR record %d not found in current entity\n", (int)id);
+            		return;
+        	}
+
+        	printf("OK: using record %d\n", (int)id);
+        	return;
+    	}
+
+    	if (name != NULL || extra != NULL) {
+        	printf("ERR usage: USE <entity> or USE RECORD <id>\n");
+        	return;
+    	}
+
+    	if (!storage_use_entity(object)) {
+        	printf("ERR entity '%s' not found\n", object);
+        	return;
+    	}
+
+    	printf("OK: using entity '%s'\n", object);
+    }
+
 
     else if (strcmp(command, "STATS") == 0) {
    	 if (strtok(NULL, " \t") != NULL) {
