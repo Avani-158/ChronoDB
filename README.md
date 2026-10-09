@@ -1,281 +1,186 @@
 # ChronoDB
 
-ChronoDB is a lightweight, terminal-based, version-controlled key-value database engine written in C.
+A lightweight, version-controlled key-value database engine built in **C**. ChronoDB provides a terminal-based interface for organizing typed key-value data, tracking changes, rolling back values, and saving database state to disk.
 
-It is an educational systems project demonstrating database concepts including structured data management, version history, rollback, transactions, snapshots, search, statistics, and persistent storage without relying on an external database engine.
+## Project Proposal
+
+### Project Description
+
+ChronoDB is a command-line database engine implemented in C. It organizes data using an **Entity → Record → Key/Value** model. In addition to basic data operations, it supports value history, rollback, transactions, snapshots, and persistent storage.
+
+### Goals
+
+- Implement core database operations in C.
+- Organize data into entities and records containing key-value entries.
+- Track changes to values and support rollback to earlier versions.
+- Provide transaction controls to commit or abort a group of changes.
+- Create, list, and restore database snapshots.
+- Save and load database state using a custom text-based format.
+- Practice modular C programming, file handling, validation, and automated testing.
+
+### Specifications
+
+| Item | Specification |
+|---|---|
+| Language | C |
+| Interface | Interactive command-line shell |
+| Compiler | GCC |
+| Build tool | Make |
+| Data model | Entities → Records → Key/Value entries |
+| Supported value types | String, integer, float, boolean |
+| Persistence | Custom text-based database file |
+| Tests | Automated C storage tests |
+
+### Design
+
+ChronoDB separates the command-line interface and command parsing from the storage layer. The storage layer manages entities, records, typed values, history, rollback, transactions, snapshots, and persistence. Automated storage tests check core operations and error handling.
 
 ## Features
 
-- **Entity and Record model** — `Entity → Record → Key/Value`
-- **CRUD operations** — `SET`, `GET`, `UPDATE`, `DELETE`, `LIST`
-- **Typed values** — String, Integer, Float, Boolean
-- **Version history** — preserves previous values of keys
-- **Rollback** — restores a selected historical version as a new version
-- **Transactions** — `BEGIN`, `COMMIT`, `ABORT`
-- **Snapshots** — create, list, and restore database snapshots
-- **Search** — case-insensitive search across keys and values
-- **Statistics** — entity, record, entry, history, and snapshot counters
-- **Persistence** — custom `CHRONODB 5` disk format with validation
-- **Automated storage tests** — coverage for core storage functionality and validation
-
-## Architecture
-
-```text
-ChronoDB
-│
-├── Entity
-│   ├── Record 1
-│   │   ├── key → value
-│   │   └── key → value
-│   │
-│   ├── Record 2
-│   │   └── key → value
-│   │
-│   └── ...
-│
-└── Version History
-    ├── Entity context
-    ├── Record context
-    ├── Key
-    ├── Value
-    └── Version
-```
-
-ChronoDB maintains a current entity and record context. Data operations such as `SET`, `GET`, `UPDATE`, `DELETE`, `SEARCH`, `HISTORY`, and `ROLLBACK` operate on that context.
-
-## Commands
-
-### General
-
-| Command | Description |
-|---|---|
-| `HELP` | Display available commands |
-| `EXIT` | Exit ChronoDB |
-
-### Entities and Records
-
-| Command | Description |
-|---|---|
-| `CREATE ENTITY <name>` | Create and select an entity |
-| `LIST ENTITIES` | List all entities |
-| `USE <entity>` | Select an entity |
-| `CREATE RECORD` | Create a record in the current entity |
-| `LIST RECORDS` | List records in the current entity |
-| `USE RECORD <id>` | Select a record |
-
-### Data Operations
-
-| Command | Description |
-|---|---|
-| `SET <key> <value>` | Create a new key |
-| `GET <key>` | Read a key |
-| `UPDATE <key> <value>` | Update an existing key |
-| `DELETE <key>` | Delete a key |
-| `LIST` | List keys and values in the current record |
-| `SEARCH <term>` | Search keys and values |
-
-`SET` creates a new key and does not overwrite an existing key. Use `UPDATE` for an existing key.
-
-### Versioning
-
-| Command | Description |
-|---|---|
-| `HISTORY <key>` | Display the version history of a key |
-| `ROLLBACK <key> <version>` | Restore a historical version |
-
-### Transactions
-
-| Command | Description |
-|---|---|
-| `BEGIN` | Start a transaction |
-| `COMMIT` | Keep transaction changes |
-| `ABORT` | Discard transaction changes |
-
-### Snapshots and Statistics
-
-| Command | Description |
-|---|---|
-| `SNAPSHOT CREATE` | Create a snapshot |
-| `SNAPSHOT LIST` | List snapshots |
-| `SNAPSHOT RESTORE <id>` | Restore a snapshot |
-| `STATS` | Display database statistics |
-
-### Persistence
-
-| Command | Description |
-|---|---|
-| `SAVE` | Save the current database |
-| `LOAD` | Load the database from disk |
-
-## Example
-
-```text
-chronodb> CREATE ENTITY user
-OK: entity 'user' created successfully
-
-chronodb> SET name Avani
-OK: key 'name' created successfully
-
-chronodb> SET age 21
-OK: key 'age' created successfully
-
-chronodb> GET age
-VALUE: 21
-TYPE: INTEGER
-
-chronodb> UPDATE name Deeya
-OK: key 'name' updated successfully
-
-chronodb> HISTORY name
-
-History for key: name
-Version Value
--------------------------
-1       Avani
-2       Deeya
-
-chronodb> ROLLBACK name 1
-OK: key 'name' rolled back to version 1
-
-chronodb> GET name
-VALUE: Avani
-TYPE: STRING
-```
-
-### Transaction
-
-```text
-chronodb> BEGIN
-OK: transaction started
-
-chronodb> UPDATE name Temporary
-OK: key 'name' updated successfully
-
-chronodb> ABORT
-OK: transaction aborted
-```
-
-### Snapshot
-
-```text
-chronodb> SNAPSHOT CREATE
-OK: snapshot 1 created
-
-chronodb> UPDATE name Changed
-OK: key 'name' updated successfully
-
-chronodb> SNAPSHOT RESTORE 1
-OK: snapshot 1 restored successfully
-```
+- **Entity and record management:** create entities and records, and switch the active record.
+- **Key-value operations:** set new keys, update existing keys, retrieve values, delete keys, and list stored entries.
+- **Typed values:** support strings, integers, floating-point numbers, and booleans.
+- **Search:** search stored data using case-insensitive matching.
+- **Version history:** inspect a key's history and roll back to an earlier value.
+- **Transactions:** use `BEGIN`, `COMMIT`, and `ABORT`.
+- **Snapshots:** create snapshots, list them, and restore a snapshot.
+- **Statistics:** view database statistics with `STATS`.
+- **Persistence:** save the database to `data/chronodb.db` and load it when the program starts.
+- **Automated tests:** build and run the storage test suite using Make.
 
 ## Project Structure
 
 ```text
 ChronoDB/
-├── include/
-│   └── storage.h
-├── src/
-│   ├── main.c
-│   ├── parser.c
-│   └── storage.c
-├── tests/
-│   └── test_storage.c
 ├── data/
-│   └── chronodb.db
-├── docs/
-│   └── design-notes.md
+│   └── chronodb.db          # Local database file (created/updated by the program)
+├── docs/                    # Project documentation
+├── include/
+│   └── storage.h            # Storage declarations
+├── src/
+│   ├── main.c               # CLI entry point
+│   ├── parser.c             # Command parsing and dispatch
+│   └── storage.c            # Storage and database operations
+├── tests/
+│   └── test_storage.c       # Storage tests
 ├── .gitignore
+├── Makefile
 └── README.md
 ```
 
-## Building
+## Requirements
 
-From the project root:
+- Linux or another environment with GCC and Make installed.
+- A C compiler compatible with the project's C source files.
+
+On Ubuntu, install the build tools with:
 
 ```bash
-gcc -Wall -Wextra -Iinclude src/storage.c src/parser.c src/main.c -o chronodb
+sudo apt update
+sudo apt install build-essential
 ```
 
-Run:
+## Build and Run
+
+From the project root, compile ChronoDB:
+
+```bash
+make
+```
+
+Start the command-line interface:
 
 ```bash
 ./chronodb
 ```
 
-## Running Tests
-
-Compile:
+To remove compiled binaries and common build artifacts:
 
 ```bash
-gcc -Wall -Wextra -Iinclude tests/test_storage.c src/storage.c -o test_storage
+make clean
 ```
 
-Run:
+## Run Tests
+
+Run the automated storage tests:
 
 ```bash
-./test_storage
+make test
 ```
 
-Expected result:
+A successful test run prints:
 
 ```text
 All ChronoDB storage tests passed.
 ```
 
-## Persistence
+## Command Reference
 
-ChronoDB stores its persistent database in:
+Commands are entered in the ChronoDB shell. Exact command syntax depends on the command parser; the examples below illustrate the main workflow.
+
+| Command | Purpose |
+|---|---|
+| `CREATE ENTITY <name>` | Create an entity and select its initial record. |
+| `CREATE RECORD` | Create and select another record in the current entity. |
+| `USE RECORD <id>` | Switch to a record by ID. |
+| `SET <key> <value>` | Add a new key-value entry. |
+| `UPDATE <key> <value>` | Change the value of an existing key. |
+| `GET <key>` | Retrieve a value. |
+| `DELETE <key>` | Delete a key. |
+| `LIST` | List entries in the active record. |
+| `SEARCH <term>` | Search stored data. |
+| `HISTORY <key>` | Show a key's version history. |
+| `ROLLBACK <key> <version>` | Restore a key to an earlier version. |
+| `BEGIN` | Start a transaction. |
+| `COMMIT` | Commit a transaction. |
+| `ABORT` | Abort a transaction. |
+| `SNAPSHOT CREATE <name>` | Create a named snapshot. |
+| `SNAPSHOT LIST` | List available snapshots. |
+| `SNAPSHOT RESTORE <name>` | Restore a named snapshot. |
+| `STATS` | Display database statistics. |
+
+## Example Workflow
+
+The following is an illustrative session; output and generated record IDs may differ.
 
 ```text
-data/chronodb.db
+CREATE ENTITY students
+SET name "Aarav"
+SET age 21
+GET name
+UPDATE age 22
+HISTORY age
+STATS
 ```
 
-It uses a custom text-based persistence format rather than SQLite, MySQL, PostgreSQL, or another external database engine.
+Use `CREATE RECORD` to add another record to the selected entity. Use `USE RECORD <id>` to switch records when needed.
 
-The current format is identified by:
+## Data Persistence
+
+ChronoDB stores its database state in `data/chronodb.db` using its custom text-based format. The program loads saved state when it starts and writes state to disk through its persistence workflow. Do not manually edit the database file unless you understand the format.
+
+## Testing Status
+
+The project has been built with GCC using warning flags (`-Wall -Wextra`), and the storage test suite has passed with:
 
 ```text
-CHRONODB 5
+All ChronoDB storage tests passed.
 ```
 
-The loader validates the persisted structure before replacing the current in-memory state.
+Run `make test` after making changes to check the storage layer again.
 
-## Testing
+## Current Scope and Limitations
 
-The project includes automated storage tests covering:
+ChronoDB is a learning-oriented database engine, not a production database. Its current design uses fixed-size in-memory structures and a basic command parser. It is intended for local, single-process use and does not provide production-grade concurrency, networking, authentication, or crash-recovery guarantees.
 
-- CRUD operations
-- Typed values
-- History and rollback
-- Transactions
-- Snapshots
-- Persistence and validation
+## Possible Future Improvements
 
-The CLI has also been tested through an end-to-end workflow covering the main database features.
+- Replace fixed-size structures with dynamic memory allocation.
+- Add more advanced indexing and query capabilities.
+- Improve parsing, quoting, and input validation.
+- Add stronger crash recovery and persistence guarantees.
+- Expand tests for edge cases and command-level behavior.
 
-## Limitations
+## License
 
-- Fixed-size in-memory storage
-- Single-process local usage
-- Basic command parsing
-
-## Future Improvements
-
-- Dynamic memory allocation
-- Advanced indexing and queries
-- Improved command parsing
-- Concurrency support
-
-## Technologies
-
-- **Language:** C
-- **Platform:** Linux / Ubuntu
-- **Compiler:** GCC
-- **Storage:** Custom text-based persistence format
-- **Testing:** C assertions and automated storage tests
-
-## Project Goal
-
-ChronoDB demonstrates core database-engineering concepts at a small scale: data organization, state management, versioning, rollback, transactions, snapshots, persistence, validation, and testing.
-
-It provides practical experience implementing database functionality in C while keeping the internal design understandable and inspectable.
+No license is specified in this README. Add a `LICENSE` file to the repository if you want to publish the project under an explicit open-source license.
